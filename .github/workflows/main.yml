@@ -1,0 +1,53 @@
+name: Compile PDF
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/robotolev/xetex:1.0.1
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Compile PDF
+      run: |
+        chmod u+x compile.sh
+        ./compile.sh
+
+    - name: Upload PDF as an artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: icpc-trd
+        path: icpc-trd.pdf
+        if-no-files-found: error
+        overwrite: true
+
+  release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref_name == 'master'
+    needs: build
+    permissions:
+      contents: write
+    steps:
+    - name: Store current date and time
+      id: datetime
+      run: echo "BUILD_TIME=$(date +'%Y-%m-%d--%H-%M-%S')" >> "$GITHUB_OUTPUT"
+    
+    - name: Download PDF as an artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: icpc-trd
+    
+    - name: Upload PDF as a release
+      uses: softprops/action-gh-release@v2.3.3
+      with:
+        body: Новый PDF собран в ${{ steps.datetime.outputs.BUILD_TIME }}
+        tag_name: ${{ steps.datetime.outputs.BUILD_TIME }}
+        files: icpc-trd.pdf
+        fail_on_unmatched_files: true
+        generate_release_notes: true
+        make_latest: true
