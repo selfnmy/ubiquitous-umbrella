@@ -1,0 +1,4 @@
+1) LCM
+2) Trie
+3) Grey's code
+4) DSU?
